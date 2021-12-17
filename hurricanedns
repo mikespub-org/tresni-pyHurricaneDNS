@@ -5,20 +5,22 @@ Inspired by & heavily borrowed from the EveryDNS Command Line tool/shell by
     Scott Yang: http://svn.fucoder.com/fucoder/pyeverydns/everydnscmd.py
 """
 
-from __future__ import print_function
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
 
-
 import cmd
-import pkg_resources
+from importlib.metadata import version
 from shlex import split as split_args
+
 import HurricaneDNS
 
-__version__ = pkg_resources.require("hurricanedns")[0].version
+try:
+    __version__ = version("hurricanedns")
+except:
+    __version__ = "1.0.3"
 __author__ = "Brian Hartvigsen <brian.andrew@brianandjenny.com>"
 __copyright__ = "Copyright 2015, Brian Hartvigsen"
 __credits__ = ["Scott Yang", "Brian Hartvigsen"]
@@ -29,10 +31,10 @@ def write_help(func):
     def decorator(self):
         for line in StringIO(func.__doc__):
             line = line.strip()
-            if line.startswith('!'):
+            if line.startswith("!"):
                 print(line[1:].upper())
             else:
-                print('        ' + line)
+                print("        " + line)
 
     return decorator
 
@@ -50,11 +52,13 @@ class HurricaneDNSShell(cmd.Cmd):
     @staticmethod
     def filter_down(args, pos, possibiles):
         start = args[pos - 1] if len(args) == pos else None
-        final = list(filter(lambda x: x.startswith(start) if start else True, possibiles))
+        final = list(
+            filter(lambda x: x.startswith(start) if start else True, possibiles)
+        )
         return final
 
     def default(self, line):
-        self._do_error('command not found', line.split()[0])
+        self._do_error("command not found", line.split()[0])
 
     def completedefault(self, text, line, begidx, endidx):
         pass
@@ -81,7 +85,7 @@ class HurricaneDNSShell(cmd.Cmd):
             return
 
         existing = self._get_hdns().cache_domains()
-        existing = list(item['domain'] for item in existing)
+        existing = list(item["domain"] for item in existing)
 
         src = args[0].lower()
         target = args[1].lower()
@@ -101,14 +105,19 @@ class HurricaneDNSShell(cmd.Cmd):
         src_records = self._get_hdns().cache_records(src)
 
         for record in src_records:
-            host = record['host'][::-1].replace(src[::-1], target[::-1], 1)[::-1]
-            if record['type'] == 'SOA':
+            host = record["host"][::-1].replace(src[::-1], target[::-1], 1)[::-1]
+            if record["type"] == "SOA":
                 continue
-            if 'extended' not in record:
-                record['extended'] = record['value']
-            self._get_hdns().add_record(target, host, record['type'],
-                                        record['extended'], mx=record['mx'],
-                                        ttl=record['ttl'])
+            if "extended" not in record:
+                record["extended"] = record["value"]
+            self._get_hdns().add_record(
+                target,
+                host,
+                record["type"],
+                record["extended"],
+                mx=record["mx"],
+                ttl=record["ttl"],
+            )
 
     def complete_cp(self, text, line, begidx, endidx):
         args = line.split()
@@ -119,7 +128,7 @@ class HurricaneDNSShell(cmd.Cmd):
         if pos < 2 or pos > 3:
             return
 
-        domains = map(lambda x: x['domain'], self._get_hdns().cache_domains())
+        domains = map(lambda x: x["domain"], self._get_hdns().cache_domains())
         if pos == 3:
             domains = filter(lambda x: x.lower() != args[1].lower(), domains)
 
@@ -150,9 +159,9 @@ class HurricaneDNSShell(cmd.Cmd):
                     extra[option] = value
                 self._get_hdns().add_domain(domain, **extra)
             elif 6 >= len(args) >= 4:
-                    self._get_hdns().add_record(*args)
+                self._get_hdns().add_record(*args)
             else:
-                self._do_error('Invalid arguments')
+                self._do_error("Invalid arguments")
         except HurricaneDNS.HurricaneError as e:
             self._do_error(e)
 
@@ -162,10 +171,10 @@ class HurricaneDNSShell(cmd.Cmd):
         if not text:
             pos += 1
 
-        domains = map(lambda x: x['domain'], self._get_hdns().cache_domains())
+        domains = map(lambda x: x["domain"], self._get_hdns().cache_domains())
         if pos == 2:
             return self.filter_down(args, pos, domains)
-        elif not args[1] in domains:
+        elif args[1] not in domains:
             if pos == 3:
                 return self.filter_down(args, pos, ["method=", "master="])
             else:
@@ -173,12 +182,28 @@ class HurricaneDNSShell(cmd.Cmd):
         else:
             if pos == 4:
                 types = []
-                if args[1].endswith('.in-addr.arpa') or args[1].endswith('.ip6.arpa'):
+                if args[1].endswith(".in-addr.arpa") or args[1].endswith(".ip6.arpa"):
                     types = ["CNAME", "NS", "PTR", "TXT"]
                 else:
-                    types = ["A", "AAAA", "CNAME", "ALIAS", "MX", "NS", "TXT",
-                             "CAA", "AFSDB", "HINFO", "RP", "LOC", "NAPTR",
-                             "PTR", "SSHFP", "SPF", "SRV"]
+                    types = [
+                        "A",
+                        "AAAA",
+                        "CNAME",
+                        "ALIAS",
+                        "MX",
+                        "NS",
+                        "TXT",
+                        "CAA",
+                        "AFSDB",
+                        "HINFO",
+                        "RP",
+                        "LOC",
+                        "NAPTR",
+                        "PTR",
+                        "SSHFP",
+                        "SPF",
+                        "SRV",
+                    ]
                 return self.filter_down(args, pos, types)
             else:
                 pass
@@ -212,7 +237,7 @@ class HurricaneDNSShell(cmd.Cmd):
         if not text:
             pos += 1
 
-        domains = map(lambda x: x['domain'], self._get_hdns().cache_domains())
+        domains = map(lambda x: x["domain"], self._get_hdns().cache_domains())
         if pos <= 1:
             return
         elif pos == 2:
@@ -220,42 +245,64 @@ class HurricaneDNSShell(cmd.Cmd):
         else:
             if args[1] in domains:
                 records = self._get_hdns().cache_records(args[1])
-                records = filter(lambda x: x['status'] != 'locked', records)
+                records = filter(lambda x: x["status"] != "locked", records)
             else:
                 records = None
 
         if pos == 3:
-            records = map(lambda x: x['host'], records)
+            records = map(lambda x: x["host"], records)
             return self.filter_down(args, pos, records)
         else:
-            records = filter(lambda x: x['host'].lower() == args[2].lower(), records)
+            records = filter(lambda x: x["host"].lower() == args[2].lower(), records)
 
         if pos == 4:
-            types = map(lambda x: x['type'], records)
+            types = map(lambda x: x["type"], records)
             if types:
                 pass
-            elif args[1].endswith('.in-addr.arpa') or args[1].endswith('.ip6.arpa'):
+            elif args[1].endswith(".in-addr.arpa") or args[1].endswith(".ip6.arpa"):
                 types = ["CNAME", "NS", "PTR", "TXT"]
             else:
-                types = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "AFSDB", "HINFO", "RP", "LOC", "NAPTR", "PTR", "SSHFP", "SPF", "SRV"]
+                types = [
+                    "A",
+                    "AAAA",
+                    "CNAME",
+                    "MX",
+                    "NS",
+                    "TXT",
+                    "AFSDB",
+                    "HINFO",
+                    "RP",
+                    "LOC",
+                    "NAPTR",
+                    "PTR",
+                    "SSHFP",
+                    "SPF",
+                    "SRV",
+                ]
             return self.filter_down(args, pos, types)
         else:
-            records = filter(lambda x: x['type'].lower() == args[3].lower(), records)
+            records = filter(lambda x: x["type"].lower() == args[3].lower(), records)
 
         if pos == 5:
-            values = map(lambda x: x['extended'] if 'extended' in x else x['value'], records)
+            values = map(
+                lambda x: x["extended"] if "extended" in x else x["value"], records
+            )
             return self.filter_down(args, pos, values)
         else:
-            records = filter(lambda x: (x['extended'] if 'extended' in x else x['value']).lower() == args[4].lower(), records)
+            records = filter(
+                lambda x: (x["extended"] if "extended" in x else x["value"]).lower()
+                == args[4].lower(),
+                records,
+            )
 
         if pos == 6:
-            mx = map(lambda x: x['mx'], records)
+            mx = map(lambda x: x["mx"], records)
             return self.filter_down(args, pos, mx)
         else:
-            records = filter(lambda x: x['mx'] == args[5], records)
+            records = filter(lambda x: x["mx"] == args[5], records)
 
         if pos == 7:
-            ttl = map(lambda x: x['ttl'], records)
+            ttl = map(lambda x: x["ttl"], records)
             return self.filter_down(args, pos, ttl)
 
     def do_EOF(self, args):
@@ -266,8 +313,12 @@ class HurricaneDNSShell(cmd.Cmd):
         return 1
 
     def complete_ls(self, text, line, begidx, endidx):
-        domains = list(filter(lambda x: x.startswith(text) if text else True,
-                         map(lambda x: x['domain'], self._get_hdns().cache_domains())))
+        domains = list(
+            filter(
+                lambda x: x.startswith(text) if text else True,
+                map(lambda x: x["domain"], self._get_hdns().cache_domains()),
+            )
+        )
         return domains
 
     def do_ls(self, args):
@@ -285,28 +336,37 @@ class HurricaneDNSShell(cmd.Cmd):
         """
         if args:
             existing = self._get_hdns().cache_domains()
-            existing = set([item['domain'] for item in existing])
+            existing = {item["domain"] for item in existing}
             records = []
             for domain in split_args(args):
                 if domain.lower() not in existing:
-                    self._do_error('Invalid domain: ' + domain)
+                    self._do_error("Invalid domain: " + domain)
                     continue
                 records.extend(self._get_hdns().cache_records(domain))
 
             if records:
-                maxhost = max([len(item['host']) for item in records])
-                maxvalue = max([len(item['value']) for item in records])
-                maxttl = max([len(item['ttl']) for item in records])
-                template = '%%%ds %%-5s %%-%ds %%%ds %%6s' % (maxhost, maxvalue, maxttl)
-                print(template % ('HOST', 'TYPE', 'VALUE', 'TTL', 'MX'))
+                maxhost = max(len(item["host"]) for item in records)
+                maxvalue = max(len(item["value"]) for item in records)
+                maxttl = max(len(item["ttl"]) for item in records)
+                template = "%%%ds %%-5s %%-%ds %%%ds %%6s" % (maxhost, maxvalue, maxttl)
+                print(template % ("HOST", "TYPE", "VALUE", "TTL", "MX"))
                 for record in records:
-                    print(template % (record['host'], record['type'], record['value'], record['ttl'], record['mx']))
+                    print(
+                        template
+                        % (
+                            record["host"],
+                            record["type"],
+                            record["value"],
+                            record["ttl"],
+                            record["mx"],
+                        )
+                    )
         else:
             domains = self._get_hdns().cache_domains()
-            domains = sorted(domains, key=lambda item: item['domain'])
-            print('TYPE       DOMAIN')
+            domains = sorted(domains, key=lambda item: item["domain"])
+            print("TYPE       DOMAIN")
             for domain in domains:
-                print('%-9s %s' % (domain['type'], domain['domain']))
+                print("%-9s %s" % (domain["type"], domain["domain"]))
 
     def do_import(self, args):
         """!NAME
@@ -320,22 +380,22 @@ class HurricaneDNSShell(cmd.Cmd):
 
         """
         try:
-            from dns import zone
             import dns.rdatatype
+            from dns import zone
         except ImportError as e:
-            self._do_error('You do not have python-dns installed!')
+            self._do_error("You do not have python-dns installed!")
             return
 
         args = split_args(args)
         if len(args) and len(args) == 2:
             domain = args[0]
             try:
-                zonedata = open(args[1], 'r').read()
+                zonedata = open(args[1]).read()
             except:
-                self._do_error('Unable to open %s for reading' % args[1])
+                self._do_error("Unable to open %s for reading" % args[1])
                 return
         else:
-            self._do_error('Invalid arguments')
+            self._do_error("Invalid arguments")
             return
 
         try:
@@ -344,10 +404,10 @@ class HurricaneDNSShell(cmd.Cmd):
             if e.message:
                 self._do_error(e.message)
             else:
-                self._do_error('Syntax error found in zone file')
+                self._do_error("Syntax error found in zone file")
             return
         except Exception as e:
-            self._do_error('Unable to parse zone file')
+            self._do_error("Unable to parse zone file")
             return
 
         # create the domain
@@ -358,37 +418,51 @@ class HurricaneDNSShell(cmd.Cmd):
             return
 
         for host, data in Z.iteritems():
-            if str(host) == '@':
+            if str(host) == "@":
                 name = domain
             else:
-                name = '%s.%s' % (host, domain)
+                name = f"{host}.{domain}"
             for r in data.rdatasets:
                 for rdata in r:
-                    if '*' in name or \
-                            r.rdtype == dns.rdatatype.SOA or \
-                            r.rdtype == dns.rdatatype.NS:
-                        print("SKIPPING:", name, dns.rdatatype.to_text(r.rdtype), r.ttl, rdata)
+                    if (
+                        "*" in name
+                        or r.rdtype == dns.rdatatype.SOA
+                        or r.rdtype == dns.rdatatype.NS
+                    ):
+                        print(
+                            "SKIPPING:",
+                            name,
+                            dns.rdatatype.to_text(r.rdtype),
+                            r.ttl,
+                            rdata,
+                        )
                         continue
                     elif r.rdtype == dns.rdatatype.SRV:
-                        _value = '%s %s %s' % (rdata.weight, rdata.port, rdata.target.to_text())
+                        _value = f"{rdata.weight} {rdata.port} {rdata.target.to_text()}"
                         _priority = rdata.priority
                     elif r.rdtype == dns.rdatatype.MX:
                         _value = rdata.exchange.to_text()
                         _priority = rdata.preference
                     else:
                         _priority = None
-                        if hasattr(rdata, 'address'):
+                        if hasattr(rdata, "address"):
                             _value = rdata.address
-                        elif hasattr(rdata, 'value'):
+                        elif hasattr(rdata, "value"):
                             _value = rdata.value
-                        elif hasattr(rdata, 'target'):
+                        elif hasattr(rdata, "target"):
                             _value = rdata.target
                         else:
-                            _value = ''
+                            _value = ""
 
                     try:
-                        self._get_hdns().add_record(domain, name, dns.rdatatype.to_text(rdata.rdtype),
-                                                    _value, _priority, r.ttl)
+                        self._get_hdns().add_record(
+                            domain,
+                            name,
+                            dns.rdatatype.to_text(rdata.rdtype),
+                            _value,
+                            _priority,
+                            r.ttl,
+                        )
                     except HurricaneDNS.HurricaneError as e:
                         if "properly delegated" in str(e):
                             pass
@@ -406,15 +480,17 @@ class HurricaneDNSShell(cmd.Cmd):
     def _do_error(self, errmsg, command=None):
         if not command:
             command = self.lastcmd.split()[0]
-        print('hdnssh: %s: %s' % (command, errmsg))
+        print(f"hdnssh: {command}: {errmsg}")
 
     def _get_hdns(self):
         if not self.__hdns:
-            self.__hdns = HurricaneDNS.HurricaneDNS(self.__username, self.__password, self.__tfa)
+            self.__hdns = HurricaneDNS.HurricaneDNS(
+                self.__username, self.__password, self.__tfa
+            )
         return self.__hdns
 
     def _make_prompt(self):
-        self.prompt = '[%s@dns.he.net] ' % self.__username
+        self.prompt = "[%s@dns.he.net] " % self.__username
 
     def cmdloop(self):
         try:
@@ -427,13 +503,22 @@ class HurricaneDNSShell(cmd.Cmd):
 def main():
     import argparse
     from sys import exit, stdin
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--version', action='version', version="%%(prog)s %s (%s)" % (__version__, __author__))
-    parser.add_argument('username', help="Your HE DNS username")
-    parser.add_argument('password', help="Your HE DNS password")
-    parser.add_argument('--tfa', '-t', type=int, help="Your 2fa code")
-    parser.add_argument('command', nargs=argparse.REMAINDER,
-                        help="An optional command, if blank we drop into interactive mode")
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__} ({__author__})",
+    )
+    parser.add_argument("username", help="Your HE DNS username")
+    parser.add_argument("password", help="Your HE DNS password")
+    parser.add_argument("--tfa", "-t", type=int, help="Your 2fa code")
+    parser.add_argument(
+        "command",
+        nargs=argparse.REMAINDER,
+        help="An optional command, if blank we drop into interactive mode",
+    )
     options = parser.parse_args()
 
     try:
@@ -446,13 +531,14 @@ def main():
                     shell.onecmd(line)
         else:
             from pipes import quote
+
             shell.onecmd(" ".join(map(lambda x: quote(x), options.command)))
     except HurricaneDNS.HurricaneAuthenticationError as e:
-        print('%s: HE sent an error (%s)' % (parser.prog, e))
+        print(f"{parser.prog}: HE sent an error ({e})")
         exit(1)
     except HurricaneDNS.HurricaneError as e:
-        print('%s: %s' % (parser.prog, e))
+        print(f"{parser.prog}: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
